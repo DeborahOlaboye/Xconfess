@@ -247,3 +247,6 @@ export function useAuthContext(): AuthContextValue {
   }
   return context;
 }
+
+/** @deprecated Use `useAuthContext` instead */
+export const useAuth = useAuthContext;

@@ -25,6 +25,7 @@ const config = {
     "^.+\\.m?[tj]sx?$": [
       "ts-jest",
       {
+        diagnostics: false,
         tsconfig: {
           jsx: "react-jsx",
           allowJs: true,

@@ -18,11 +18,18 @@ import { AnonymousConfession } from '../confession/entities/confession.entity';
 import { StellarService } from '../stellar/stellar.service';
 import {
   TIPPING_ERROR_CODES,
+  ANCHOR_ERROR_CODES,
+  CONTRACT_ERROR_CODES,
   classifyContractError,
   ContractErrorClassification,
   getRetryDelayMs,
   isRetryableContractError,
 } from '../stellar/utils/stellar-contract-errors';
+import {
+  StellarContractError,
+  handleStellarContractError,
+  getClientSafeContractErrorMessage,
+} from '../stellar/utils/stellar-error.handler';
 
 describe('Tipping Contract Fixtures', () => {
   let tippingService: TippingService;
@@ -336,10 +343,10 @@ describe('Tipping Contract Fixtures', () => {
   describe('Fixture Version Compatibility', () => {
     it('should maintain fixture version stability', () => {
       const currentFixtureVersion = 1;
-      
+
       // This test ensures fixture version doesn't change unexpectedly
       expect(currentFixtureVersion).toBe(1);
-      
+
       // When fixtures are updated, this version should be incremented
       // and migration logic should be added to handle older versions
     });
@@ -347,11 +354,108 @@ describe('Tipping Contract Fixtures', () => {
     it('should handle event version evolution', () => {
       const supportedEventVersions = [1];
       const currentEventVersion = 1;
-      
+
       expect(supportedEventVersions).toContain(currentEventVersion);
-      
+
       // Backend should be prepared to handle future event versions
       // with appropriate fallback or migration logic
+    });
+  });
+
+  describe('Error Name Stability', () => {
+    it('should preserve tipping error code names for fixture compatibility', () => {
+      const expectedNames = [
+        'INVALID_TIP_AMOUNT',
+        'METADATA_TOO_LONG',
+        'TOTAL_OVERFLOW',
+        'NONCE_OVERFLOW',
+        'UNAUTHORIZED',
+        'CONTRACT_PAUSED',
+        'RATE_LIMITED',
+        'INVALID_RATE_LIMIT_CONFIG',
+      ];
+
+      const actualNames = Object.keys(TIPPING_ERROR_CODES);
+      for (const name of expectedNames) {
+        expect(actualNames).toContain(name);
+      }
+    });
+
+    it('should preserve anchor error code names for fixture compatibility', () => {
+      const expectedNames = [
+        'UNAUTHORIZED',
+        'NOT_FOUND',
+        'INVALID_INPUT',
+        'OVERFLOW',
+        'COOLDOWN_ACTIVE',
+        'PAYLOAD_TOO_LARGE',
+        'METADATA_TOO_LONG',
+        'CONFESSION_EXISTS',
+        'CONFESSION_EMPTY',
+        'CONFESSION_TOO_LONG',
+        'REACTION_EXISTS',
+        'INVALID_REACTION_TYPE',
+        'REPORT_EXISTS',
+        'INVALID_REPORT_REASON',
+        'REPORT_REASON_TOO_LONG',
+        'PROPOSAL_NOT_FOUND',
+        'UNAUTHORIZED_APPROVAL',
+        'QUORUM_NOT_REACHED',
+        'ALREADY_APPROVED',
+        'ALREADY_EXECUTED',
+        'INVALID_ACTION',
+      ];
+
+      const actualNames = Object.keys(ANCHOR_ERROR_CODES);
+      for (const name of expectedNames) {
+        expect(actualNames).toContain(name);
+      }
+    });
+
+    it('should produce client-safe messages for all known tipping errors', () => {
+      const codes = Object.values(TIPPING_ERROR_CODES);
+      for (const code of codes) {
+        const err = handleStellarContractError(code);
+        expect(err.message).toBeTruthy();
+        expect(err.message.length).toBeGreaterThan(10);
+        const response = err.toResponse();
+        expect(response.retryable).toBe(
+          classifyContractError(code) === ContractErrorClassification.RETRYABLE,
+        );
+      }
+    });
+
+    it('should produce client-safe messages for all known anchor errors', () => {
+      const codes = Object.values(ANCHOR_ERROR_CODES);
+      for (const code of codes) {
+        const err = handleStellarContractError(code);
+        expect(err.message).toBeTruthy();
+        expect(err.message.length).toBeGreaterThan(10);
+      }
+    });
+  });
+
+  describe('Client-Safe Response Compatibility', () => {
+    it('should include classification in contract error responses', () => {
+      const err = handleStellarContractError(TIPPING_ERROR_CODES.RATE_LIMITED);
+      const response = err.toResponse();
+      expect(response).toHaveProperty('code');
+      expect(response).toHaveProperty('classification');
+      expect(response).toHaveProperty('message');
+      expect(response).toHaveProperty('httpStatus');
+      expect(response).toHaveProperty('retryable');
+    });
+
+    it('should not expose raw error names in client-safe messages', () => {
+      const codes = [
+        ...Object.values(TIPPING_ERROR_CODES),
+        ...Object.values(ANCHOR_ERROR_CODES),
+      ];
+      for (const code of codes) {
+        const msg = getClientSafeContractErrorMessage(code);
+        expect(msg).not.toMatch(/^(UNAUTHORIZED|NOT_FOUND|INVALID_|RATE_LIMITED|CONTRACT_PAUSED|OVERFLOW)/);
+        expect(msg.length).toBeGreaterThan(15);
+      }
     });
   });
 });

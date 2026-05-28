@@ -42,6 +42,7 @@ export default function AdminLayout({
       { href: "/admin/users", label: "Users" },
       { href: "/admin/notifications", label: "Notifications" },
       { href: "/admin/audit-logs", label: "Audit Logs" },
+      { href: "/admin/diagnostics", label: "Diagnostics" },
     ],
     [],
   );

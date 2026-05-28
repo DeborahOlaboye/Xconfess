@@ -4,11 +4,37 @@ This script guides maintainers and contributors through the core XConfess flows
 for a consistent Wave 5 demo. Each section lists the steps to perform and the
 screenshots or short clips to capture.
 
-## Local Setup Assumptions
+## Prerequisites
 
 - PostgreSQL and Redis are running via `compose.yaml` (default ports 55432, 6379).
 - Backend is running at `http://localhost:5000`.
 - Frontend is running at `http://localhost:3000`.
+
+## 0. Full-Stack Smoke Test
+
+Before running through the demo, verify both services are reachable:
+
+```bash
+./scripts/smoke-test.sh
+```
+
+The script checks:
+- Backend liveness at `GET /health/live`
+- Frontend root route returns HTML
+- Exits zero only when all checks pass
+
+Run it any time to confirm the stack is up:
+
+```bash
+BACKEND_URL=http://localhost:5000 FRONTEND_URL=http://localhost:3000 ./scripts/smoke-test.sh
+```
+
+---
+
+## Demo Walkthrough
+
+### Setup Assumptions
+
 - At least one admin user and one regular user exist in the local database.
 - A browser is logged in as the regular user for sections 1-2 and as the admin
   for sections 3-4.
@@ -106,6 +132,7 @@ screenshots or short clips to capture.
 
 ## Checklist Summary
 
+- [ ] Section 0 — Smoke test passes (run `./scripts/smoke-test.sh`)
 - [ ] Section 1 screenshots captured (composer + feed)
 - [ ] Section 2 screenshots captured (reactions, comments, search, detail)
 - [ ] Section 3 screenshots captured (report, admin review, audit log)
